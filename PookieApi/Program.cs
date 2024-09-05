@@ -9,12 +9,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
+var mqOptions = new RabbitMQOptions();
+builder.Configuration.GetSection(RabbitMQOptions.Position).Bind(mqOptions);
+
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException("Postgres connection string not defined."))
-    .AddRabbitMQ(rabbitConnectionString: "amqp://rabbitmq-user:password@rabbitmq:5672/" ?? throw new InvalidOperationException("Rabbit Mq configuration not set."));
+    .AddRabbitMQ(rabbitConnectionString: $"amqp://{mqOptions.UserName}:{mqOptions.Password}@{mqOptions.HostName}:5672/" ?? throw new InvalidOperationException("Rabbit Mq configuration not set."));
 
-builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
-
+builder.Services.AddOptions<RabbitMQOptions>()
+    .Bind(builder.Configuration.GetSection(RabbitMQOptions.Position));
+    
 builder.Services.AddSingleton<RabbitMqService>();
 builder.Services.AddHostedService<MessageConsumerService>();
 

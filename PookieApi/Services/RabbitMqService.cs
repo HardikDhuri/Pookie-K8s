@@ -3,10 +3,14 @@ using RabbitMQ.Client;
 using System.Text;
 
 namespace PookieApi.Services;
-public class RabbitMqService(IOptionsMonitor<RabbitMQOptions> options)
+public class RabbitMqService
 {
-    private readonly RabbitMQOptions _rabbitMqSetting = options.CurrentValue;
-
+    private readonly RabbitMQOptions _rabbitMqSetting;
+    public RabbitMqService(IOptionsMonitor<RabbitMQOptions> options)
+    {
+        _rabbitMqSetting = options.CurrentValue;
+    }
+    
     public void Publish(string message)
     {
         var factory = new ConnectionFactory
