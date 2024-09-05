@@ -1,0 +1,6 @@
+@PookieApi_HostAddress = http://localhost:5052
+
+GET {{PookieApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
