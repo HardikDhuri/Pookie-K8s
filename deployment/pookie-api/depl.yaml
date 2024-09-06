@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pookie-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pookie-api
+  template:
+    metadata:
+      labels:
+        app: pookie-api
+    spec:
+      containers:
+      - name: pookie-api
+        image: dhurihardik/pookie:1.0.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ConnectionStrings__Default
+          valueFrom:
+            secretKeyRef:
+              name: pookie-api-secret
+              key: ConnectionStrings__Default
+        - name: RabbitMQ__HostName
+          valueFrom:
+            configMapKeyRef:
+              name: pookie-api-config
+              key: RabbitMQ__HostName
+        - name: RabbitMQ__UserName
+          valueFrom:
+            secretKeyRef:
+              name: pookie-api-secret
+              key: RabbitMQ__UserName
+        - name: RabbitMQ__Password
+          valueFrom:
+            secretKeyRef:
+              name: pookie-api-secret
+              key: RabbitMQ__Password
+        - name: RabbitMQ__VirtualHost
+          valueFrom:
+            configMapKeyRef:
+              name: pookie-api-config
+              key: RabbitMQ__VirtualHost
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pookie-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: pookie-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pookie-api
+spec:
+  type: NodePort
+  ports:
+  - port: 80         # Port the service will be exposed on
+    targetPort: 8080 # Port the service forwards traffic to on the container
+    nodePort: 30080  # Port on each node where the service can be accessed externally
+  selector:
+    app: pookie-api

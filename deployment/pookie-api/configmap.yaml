@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pookie-api-config
+data:
+  RabbitMQ__HostName: "rabbitmq"
+  RabbitMQ__VirtualHost: "/"

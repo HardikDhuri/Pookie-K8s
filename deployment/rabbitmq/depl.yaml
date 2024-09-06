@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3-management
+        ports:
+        - containerPort: 5672  # AMQP port
+        - containerPort: 15672 # Management UI port
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_DEFAULT_USER
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_DEFAULT_PASS
+        - name: RABBITMQ_DEFAULT_VHOST
+          valueFrom:
+            configMapKeyRef:
+              name: rabbitmq-config
+              key: RABBITMQ_DEFAULT_VHOST
+        resources:
+          requests:
+            memory: "128Mi"  # Minimum memory RabbitMQ will require
+            cpu: "100m"      # Minimum 0.1 CPU cores required
+          limits:
+            memory: "256Mi"  # Max memory RabbitMQ can use
+            cpu: "500m"      # Max 0.5 CPU cores RabbitMQ can use
+        volumeMounts:
+        - name: rabbitmq-storage
+          mountPath: /var/lib/rabbitmq
+      volumes:
+      - name: rabbitmq-storage
+        persistentVolumeClaim:
+          claimName: rabbitmq-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  ports:
+    - port: 5672
+      name: amqp
+    - port: 1567
+      name: management
+  selector:
+    app: rabbitmq
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  type: NodePort
+  ports:
+    - port: 5672
+      targetPort: 5672
+      nodePort: 30001  # Node port for AMQP
+      name: amqp
+    - port: 15672
+      targetPort: 15672
+      nodePort: 30002  # Node port for management UI
+      name: management
+  selector:
+    app: rabbitmq
