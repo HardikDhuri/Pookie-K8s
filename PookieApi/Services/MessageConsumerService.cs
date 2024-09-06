@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -18,7 +19,7 @@ namespace PookieApi.Services
             _rabbitMqOptions = rabbitMqOptions.Value;
             _serviceProvider = serviceProvider;
             _logger = logger;
-            
+
             InitializeRabbitMq();
         }
 
@@ -67,6 +68,8 @@ namespace PookieApi.Services
 
         private void StartConsuming(CancellationToken cancellationToken)
         {
+            if (_channel is null) throw new ArgumentException(nameof(_channel));
+
             var consumer = new EventingBasicConsumer(_channel);
             consumer.Received += async (model, ea) =>
             {

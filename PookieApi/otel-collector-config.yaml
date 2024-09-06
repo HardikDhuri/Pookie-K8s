@@ -1,0 +1,25 @@
+receivers:
+  zipkin:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+    timeout: 10s
+
+exporters:
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
+
+extensions:
+  health_check:
+
+service:
+  extensions: ["health_check"]
+  pipelines:
+    traces:
+      receivers: [zipkin, otlp]
+      processors: [batch]
+      exporters: [zipkin]
