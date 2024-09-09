@@ -5,3 +5,4 @@ metadata:
 data:
   RabbitMQ__HostName: "rabbitmq"
   RabbitMQ__VirtualHost: "/"
+  ObservabilityOptions__CollectorUrl: "http://otel-collector:4317"

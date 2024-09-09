@@ -1,0 +1,100 @@
+include:
+  - compose.collector.yaml
+  - compose.tracing.yaml
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres-user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pookie
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq-user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
+    command: 
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.listen-address=:8080'
+    ports:
+      - "8081:8080"
+    environment:
+      - config.file=/etc/prometheus/prometheus.yml
+    networks:
+      - app-network  
+
+  loki:
+    image: grafana/loki:latest
+    command: [ "-config.file=/etc/loki/local-config.yaml" ]
+    networks:
+      - app-network  
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    depends_on:
+      - jaeger
+      - zipkin
+      - prometheus
+      - loki
+      - collector
+    networks:
+      - app-network 
+
+  app:
+     build:
+       context: ../..
+       dockerfile: PookieApi.Dockerfile
+     environment:
+       ConnectionStrings__Default: "Host=postgres;Database=pookie;Username=postgres-user;Password=password"
+       RabbitMQ__HostName: rabbitmq
+       RabbitMQ__UserName: rabbitmq-user
+       RabbitMQ__Password: password
+       RabbitMQ__VirtualHost: /
+       ObservabilityOptions__CollectorUrl: "http://collector:4317"
+     depends_on:
+       rabbitmq:
+         condition: service_healthy
+       postgres:
+         condition: service_started
+     ports:
+       - "8999:8080"
+     networks:
+       - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    name: app-network

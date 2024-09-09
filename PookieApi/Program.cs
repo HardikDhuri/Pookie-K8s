@@ -1,87 +1,17 @@
 
 using System.Diagnostics;
-using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenTelemetry;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using PookieApi;
+using PookieApi.Middlewares;
+using PookieApi.Extensions;
+using PookieApi.Options;
 using PookieApi.Services;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var resource = ResourceBuilder.CreateDefault().AddService("PookeApi");
-
-
-// Configure Logging
-LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
-                .ReadFrom.Configuration(builder.Configuration)
-                .Enrich.FromLogContext()
-                .Enrich.WithProperty("Application", typeof(Program).Assembly.FullName!);
-
-bool useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-if (useOtlpExporter)
-{
-    loggerConfiguration.WriteTo.OpenTelemetry(options =>
-    {
-        options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        string[] headers = builder.Configuration["OTEL_EXPORTER_OTLP_HEADERS"]?.Split(',') ?? [];
-
-        foreach (string header in headers)
-        {
-            (string key, string value) = header.Split('=') switch
-            {
-            [string k, string v] => (k, v),
-                var v => throw new InvalidOperationException($"Invalid header format {v}")
-            };
-
-            options.Headers.Add(key, value);
-        }
-
-        options.ResourceAttributes.Add("service.name", "PookieApi");
-    });
-}
-
-builder.Logging
-    .ClearProviders()
-    .AddSerilog(loggerConfiguration.CreateLogger());
-
-builder.Logging.AddOpenTelemetry(options =>
-{
-    options.SetResourceBuilder(resource);
-});
-
-// Configure Telemetry
-var otelBuilder = builder.Services.AddOpenTelemetry()
-    .WithMetrics(metricsBuilder => metricsBuilder
-        .AddMeter("PookieApi")
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation())
-    .WithTracing(traceBuilder => traceBuilder
-        .AddSource("PookieApi", "1.0.0")
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-    );
-
-otelBuilder.ConfigureResource((resource) =>
-{
-    resource.AddAttributes(
-    [
-        new("service.name", "PookieApi"),
-        new("service.version", "1.0.0")
-    ]);
-});
-
-if (useOtlpExporter)
-{
-    otelBuilder.UseOtlpExporter();
-}
+builder.AddObservability();
 
 Activity.DefaultIdFormat = ActivityIdFormat.W3C;
 
@@ -154,6 +84,10 @@ app.MapGet("/api/messages", async (ILogger<Program> logger, ApplicationDbContext
 })
 .WithName("GetMessages")
 .WithOpenApi();
+
+app.UseSerilogRequestLogging();
+
+app.UseTraceIdResponseHeader();
 
 app.MapHealthChecks("/health");
 

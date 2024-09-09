@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using PookieApi.Options;
 using RabbitMQ.Client;
 using System.Text;
 

@@ -1,6 +1,6 @@
 using System.Text;
-using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.Extensions.Options;
+using PookieApi.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 

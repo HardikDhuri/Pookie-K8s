@@ -1,5 +1,4 @@
 receivers:
-  zipkin:
   otlp:
     protocols:
       grpc:
@@ -10,8 +9,10 @@ processors:
     timeout: 10s
 
 exporters:
-  zipkin:
-    endpoint: "http://zipkin:9411/api/v2/spans"
+  jaeger:
+    endpoint: "jaeger:14250"  # Ensure this matches the Jaeger service name and port
+    tls:
+      insecure: true
 
 extensions:
   health_check:
@@ -20,6 +21,6 @@ service:
   extensions: ["health_check"]
   pipelines:
     traces:
-      receivers: [zipkin, otlp]
+      receivers: [otlp]
       processors: [batch]
-      exporters: [zipkin]
+      exporters: [jaeger]

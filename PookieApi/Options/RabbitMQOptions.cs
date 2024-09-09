@@ -1,5 +1,5 @@
 
-namespace PookieApi;
+namespace PookieApi.Options;
 public class RabbitMQOptions
 {
     public const string Position = "RabbitMQ"; 

@@ -1,0 +1,14 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"                    # Jaeger UI
+    networks:
+      - app-network 
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9412:9411"   
+    networks:
+      - app-network

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: pookie-api
-        image: dhurihardik/pookie:1.0.0
+        image: dhurihardik/pookie:1.2.0
         ports:
         - containerPort: 8080
         env:
@@ -43,6 +43,11 @@ spec:
             configMapKeyRef:
               name: pookie-api-config
               key: RabbitMQ__VirtualHost
+        - name: ObservabilityOptions__CollectorUrl
+          valueFrom:
+            configMapKeyRef:
+              name: pookie-api-config
+              key: ObservabilityOptions__CollectorUrl
         resources:
           limits:
             memory: "512Mi"
